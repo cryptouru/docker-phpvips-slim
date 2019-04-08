@@ -70,16 +70,13 @@ $app->get('/magick', function (Request $request, Response $response, array $args
       ['access' => Vips\Access::SEQUENTIAL]
   );
 
-  // $image = $image->colourspace(Vips\Interpretation::RGB16);
-  // $image->writeToFile('sarasa.jpg');
+  // $image = $image->colourspace(Vips\Interpretation::RGB16)
   $bin = $image->writeToMemory();
   
   $imagick = new \Imagick();
   $imagick->setSize($image->width, $image->height);
   $imagick->setFormat("jpg");
   $imagick->readImageBlob($bin);
-  // echo print_r($imagick->queryFormats());
-  // die();
   
   $imagick->writeImage($dest);
   $img = file_get_contents($dest);
@@ -110,10 +107,44 @@ $app->get('/bench', function (Request $request, Response $response, array $args)
   return $response->withHeader('Content-Type', 'image/jpg');
 
 });
+
+$app->get('/curved/{text}/{temp}', function (Request $request, Response $response, array $args) {
+    $text = $args['text'];
+    $dest = $args['temp'];
+    $draw = new \ImagickDraw();
+ 
+    $draw->setFont("../fonts/Lato-Black.ttf");
+    $draw->setFontSize(48);
+    $draw->setStrokeAntialias(true);
+    $draw->setTextAntialias(true);
+    $draw->setFillColor('#ff0000');
+ 
+    $textOnly = new \Imagick();
+    $textOnly->newImage(600, 300, "rgb(230, 230, 230)");
+    $textOnly->setImageFormat('png');
+    $textOnly->annotateImage($draw, 30, 40, 0, $text);
+    $textOnly->trimImage(0);
+    $textOnly->setImagePage($textOnly->getimageWidth(), $textOnly->getimageheight(), 0, 0);
+ 
+    $distort = array(180);
+    $textOnly->setImageVirtualPixelMethod(Imagick::VIRTUALPIXELMETHOD_TRANSPARENT);
+ 
+    $textOnly->setImageMatte(true);
+    $textOnly->distortImage(Imagick::DISTORTION_ARC, $distort, false);
+ 
+    $textOnly->setformat('png');
+    $textOnly->writeImage($dest);
+
+    $image = file_get_contents($dest);
+    $response->write($image);
+    return $response->withHeader('Content-Type', 'image/png');
+});
+
 $app->get('/api/{name}', function (Request $request, Response $response, array $args) {
     $name = $args['name'];
     $response->getBody()->write("Hello, $name");
 
     return $response;
 });
+
 $app->run();
