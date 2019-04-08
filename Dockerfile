@@ -51,7 +51,15 @@ RUN \
   libjpeg-dev \
   libexif-dev \
   liblcms2-dev \
-  liborc-dev 
+  gir1.2-pango-1.0 libpango1.0-dev libpangocairo-1.0-0 libpangoxft-1.0-0 \
+  gcc libmagickwand-dev
+
+RUN pecl install imagick
+
+# enable the gmagick.so extension
+RUN \
+  echo "extension=imagick.so" > /usr/local/etc/php/conf.d/imagick.ini && \
+  ln -s /usr/local/etc/php/conf.d/imagick.ini
 
 # build in /build, install to /usr
 # the version packaged for 16.04 is too old
@@ -64,7 +72,7 @@ RUN \
 RUN \
   pecl install vips
 
-# enable the vips.so extension at the cli so composer can find it
+# enable the vips.so extension
 RUN \
   echo "extension=vips.so" > /usr/local/etc/php/conf.d/vips.ini && \
   ln -s /usr/local/etc/php/conf.d/vips.ini
