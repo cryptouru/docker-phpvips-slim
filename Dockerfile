@@ -1,9 +1,11 @@
 #+++++++++++++++++++++++++++++++++++++++
 # Dockerfile for webdevops/php-nginx-dev:7.3
+# https://github.com/webdevops/Dockerfile/blob/master/docker/php-nginx-dev/7.3
 #    -- automatically generated  --
 #+++++++++++++++++++++++++++++++++++++++
 
 FROM webdevops/php-nginx:7.3
+# https://github.com/webdevops/Dockerfile/blob/master/docker/php-nginx/7.3
 
 ENV WEB_DOCUMENT_ROOT=/app/www \
   WEB_DOCUMENT_INDEX=index.php \
@@ -31,7 +33,11 @@ RUN set -x \
   && docker-run-bootstrap \
   && docker-image-cleanup
 
-#Libvips Setup
+#+++++++++++++++++++++++++++++++++++++++++++++++++
+#   -- Libvips & image processing libs setup  --
+#+++++++++++++++++++++++++++++++++++++++++++++++++
+
+# essential stuff to build
 RUN \
   apt-get update && \
   apt-get install -y \
@@ -56,13 +62,12 @@ RUN \
 
 RUN pecl install imagick
 
-# enable the gmagick.so extension
+# enable the imagick.so extension
 RUN \
   echo "extension=imagick.so" > /usr/local/etc/php/conf.d/imagick.ini && \
   ln -s /usr/local/etc/php/conf.d/imagick.ini
 
 # build in /build, install to /usr
-# the version packaged for 16.04 is too old
 WORKDIR /build
 COPY install-vips.sh /build
 RUN \

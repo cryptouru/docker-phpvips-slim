@@ -1,6 +1,6 @@
 {
     "require": {
-        "jcupitt/vips" : "1.0.4"
+        "jcupitt/vips": "1.0.4",
+        "slim/slim": "^3.12"
     }
-
 }
