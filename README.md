@@ -8,4 +8,4 @@ sh composer-sh
 
 ## Run
 
-#sh dev.sh
+sh dev.sh
