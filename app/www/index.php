@@ -5,6 +5,7 @@ use Jcupitt\Vips;
 require __DIR__ . '/../vendor/autoload.php';
 
 $app = new \Slim\App;
+
 $app->get('/overlay/{name}/{dest}', function (Request $request, Response $response, array $args) {
 
   $name = $args['name'];
@@ -34,29 +35,6 @@ $app->get('/overlay/{name}/{dest}', function (Request $request, Response $respon
   $response->getBody()->write("Success");
 
   return $response;
-});
-
-$app->get('/text/{text}/{dest}', function (Request $request, Response $response, array $args) {
-  $argv[1] = 'blank-tshirt.jpg';
-  $dest = $args['dest'] . '.jpg' ;
-
-  $image = Vips\Image::newFromFile($argv[1], ['access' => 'sequential']);
-  // this renders the text to a one-band image ... set width to the pixels across
-  // of the area we want to render to to have it break lines for you
-  $text = Vips\Image::text( $args['text'], [
-    'font' => 'sans 120', 
-    'width' => $image->width,
-  ]);
-  // make a constant image the size of $text, but with every pixel red ... tag it
-  // as srgb
-  $red = $text->newFromImage([255, 0, 0])->copy(['interpretation' => 'srgb']);
-  // use the text mask as the alpha for the constant red image
-  $overlay = $red->bandjoin($text);
-
-  // composite the text on the image
-  $out = $image->composite($overlay, "over", ['x' => 280, 'y' => 350]);
-
-  $out->writeToFile($dest);
 });
 
 $app->get('/magick', function (Request $request, Response $response, array $args) {
@@ -112,14 +90,13 @@ $app->get('/resize', function (Request $request, Response $response, array $args
   $body = $request->getQueryParams();
   $width = $body['width'];
   $height = $body['height'];
-  $type = $body['type'];
+  $type = $body['type'] ? : 'jpeg';
   $url = $body['url'];
-  $dest = './temp/temp-test.jpg';
 
   $black = Vips\Image::black($width, $height);
 
 
-  $im = imageFromUrl($url, 'temp', 'jpg');
+  $im = imageFromUrl($url, hash('ripemd160', $url), $type);
   $resize = $width / $im->width;
   $im = $im->resize($resize);
   
@@ -128,36 +105,32 @@ $app->get('/resize', function (Request $request, Response $response, array $args
   $image = $out->writeToBuffer('.jpg');
 
   $response->write($image);
-  return $response->withHeader('Content-Type', 'image/jpeg');
+  return $response->withHeader('Content-Type', 'image/' . $type);
 
 });
 
 $app->get('/crop', function (Request $request, Response $response, array $args) {
   $body = $request->getQueryParams();
   $width = $body['width'];
-  $type = $body['type'];
+  $type = $body['type'] ? : 'jpeg';
   $url = $body['url'];
   $x = (int)$body['x'] ? : 0;
   $y = (int)$body['y'] ? : 0;
-  $dest = './temp/temp-test.jpg';
 
-  // $black = Vips\Image::black($width, $height);
-
-
-  $im = imageFromUrl($url, 'temp', $type);
+  $im = imageFromUrl($url, hash('ripemd160', $url), $type);
   $im = $im->crop($x, $y ,$width, $im->height - $y);
   
   $image = $im->writeToBuffer('.jpg');
 
   $response->write($image);
-  return $response->withHeader('Content-Type', 'image/jpeg');
+  return $response->withHeader('Content-Type', 'image/' . $type);
 
 });
 
 $app->get('/text', function (Request $request, Response $response, array $args) {
   $body = $request->getQueryParams();
   $width = $body['width'];
-  $type = $body['type'];
+  $type = $body['type'] ? : 'jpeg';
   $url = $body['url'];
   $size = $body['size'] ? : 32;
   $x = (int)$body['x'] ? : 0;
@@ -186,7 +159,7 @@ $app->get('/text', function (Request $request, Response $response, array $args) 
   $image = $out->writeToBuffer('.jpg');
 
   $response->write($image);
-  return $response->withHeader('Content-Type', 'image/jpeg');
+  return $response->withHeader('Content-Type', 'image/' . $type);
 });
 
 $app->get('/curved/{text}/{temp}', function (Request $request, Response $response, array $args) {
