@@ -108,6 +108,87 @@ $app->get('/bench', function (Request $request, Response $response, array $args)
 
 });
 
+$app->get('/resize', function (Request $request, Response $response, array $args) {
+  $body = $request->getQueryParams();
+  $width = $body['width'];
+  $height = $body['height'];
+  $type = $body['type'];
+  $url = $body['url'];
+  $dest = './temp/temp-test.jpg';
+
+  $black = Vips\Image::black($width, $height);
+
+
+  $im = imageFromUrl($url, 'temp', 'jpg');
+  $resize = $width / $im->width;
+  $im = $im->resize($resize);
+  
+
+  $out = $black->composite2($im, "over");
+  $image = $out->writeToBuffer('.jpg');
+
+  $response->write($image);
+  return $response->withHeader('Content-Type', 'image/jpeg');
+
+});
+
+$app->get('/crop', function (Request $request, Response $response, array $args) {
+  $body = $request->getQueryParams();
+  $width = $body['width'];
+  $type = $body['type'];
+  $url = $body['url'];
+  $x = (int)$body['x'] ? : 0;
+  $y = (int)$body['y'] ? : 0;
+  $dest = './temp/temp-test.jpg';
+
+  // $black = Vips\Image::black($width, $height);
+
+
+  $im = imageFromUrl($url, 'temp', $type);
+  $im = $im->crop($x, $y ,$width, $im->height - $y);
+  
+  $image = $im->writeToBuffer('.jpg');
+
+  $response->write($image);
+  return $response->withHeader('Content-Type', 'image/jpeg');
+
+});
+
+$app->get('/text', function (Request $request, Response $response, array $args) {
+  $body = $request->getQueryParams();
+  $width = $body['width'];
+  $type = $body['type'];
+  $url = $body['url'];
+  $size = $body['size'] ? : 32;
+  $x = (int)$body['x'] ? : 0;
+  $y = (int)$body['y'] ? : 0;
+  
+  $image = imageFromUrl($url, hash('ripemd160', $url), $type);
+  if($width) {
+    $resize = $width / $image->width;
+    $image = $image->resize($resize);
+  }
+  // this renders the text to a one-band image ... set width to the pixels across
+  // of the area we want to render to to have it break lines for you
+  $text = Vips\Image::text( $body['text'], [
+    'font' => 'sans ' . $size, 
+    'width' => $image->width,
+  ]);
+  // make a constant image the size of $text, but with every pixel red ... tag it
+  // as srgb
+  $red = $text->newFromImage([255, 0, 0])->copy(['interpretation' => 'srgb']);
+  // use the text mask as the alpha for the constant red image
+  $overlay = $red->bandjoin($text);
+
+  // composite the text on the image
+  $out = $image->composite($overlay, "over", ['x' => $y, 'y' => $x]);
+
+  $image = $out->writeToBuffer('.jpg');
+
+  $response->write($image);
+  return $response->withHeader('Content-Type', 'image/jpeg');
+});
+
 $app->get('/curved/{text}/{temp}', function (Request $request, Response $response, array $args) {
     $text = $args['text'];
     $dest = $args['temp'];
@@ -148,3 +229,12 @@ $app->get('/api/{name}', function (Request $request, Response $response, array $
 });
 
 $app->run();
+
+function imageFromUrl($url, $name, $ext): Vips\Image {
+  $img = './temp/' . $name . '.' . $ext;
+  echo $img;
+  echo $url;
+  file_put_contents($img, file_get_contents($url));
+
+  return Vips\Image::newFromFile($img, ['access' => Vips\Access::SEQUENTIAL]);
+}

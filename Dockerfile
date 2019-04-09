@@ -83,3 +83,5 @@ RUN \
   ln -s /usr/local/etc/php/conf.d/vips.ini
 
 WORKDIR /app
+
+COPY app/ /app
